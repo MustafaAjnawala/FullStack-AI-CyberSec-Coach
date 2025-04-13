@@ -1,0 +1,31 @@
+#backend Data
+Backend/.env
+
+Backend/node_modules
+
+#Frontend
+# dependencies
+Frontend/node_modules
+
+# next.js
+Frontend/.next/
+Frontend/out/
+
+# production
+Frontend/build
+
+# debug
+Frontend/npm-debug.log*
+Frontend/yarn-debug.log*
+Frontend/yarn-error.log*
+Frontend/.pnpm-debug.log*
+
+# env files
+Frontend/.env*
+
+# vercel
+Frontend/.vercel
+
+# typescript
+Frontend/*.tsbuildinfo
+Frontend/next-env.d.ts
