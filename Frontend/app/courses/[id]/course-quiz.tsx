@@ -1,318 +1,462 @@
-"use client";
-import { AlertTitle } from "@/components/ui/alert";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Shield, CheckCircle, Loader2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
+import { Shield, CheckCircle, Loader2 } from "lucide-react"
 
 interface Question {
-  id: number;
-  question: string;
-  options: string[];
-  correctAnswer: number;
+  id: number
+  questionId: string // Ensure this exists if used in completeQuiz
+  question: string
+  options: string[]
+  correctAnswer: number
 }
 
-export function CourseQuiz() {
-  const courseId = "6603e0f6b2b4e9db2f234568"; // 🔹 Hardcoded Course ID
-  const userId = "6603e0f6b2b4e9db2f234567"; // 🔹 Hardcoded User ID
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
-  const [quizCompleted, setQuizCompleted] = useState(false);
-  const [hasPreviousResult, setHasPreviousResult] = useState<boolean | null>(null); 
-  const [evaluation, setEvaluation] = useState<string | null>(null); // 🔹 NEW
-  const [recommendedCourses, setRecommendedCourses] = useState<string[]>([]); // 🔹 NEW
-  const [score, setScore] = useState<number | null>(null); // 🔹 NEW
-  const [submittedDate, setSubmittedDate] = useState<string | null>(null); // 🔹 NEW
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+interface QuizResults {
+  score: number
+  evaluation: Record<string, string>
+  recommendedCourses: string[]
+}
 
-  const router = useRouter();
+export function CourseQuiz({
+                             courseId,
+                             // Allow null for the case where it loads without results
+                             onComplete,
+                           }: {
+  courseId: string | number
+  onComplete: (results: QuizResults | null) => void // Modified to accept null
+}) {
+  const userId = "6603e0f6b2b4e9db2f234567" // 🔹 Hardcoded User ID - Use actual ID
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({})
+  const [quizCompletedInternally, setQuizCompletedInternally] = useState(false) // Internal state for after submission animation
+  const [hasPreviousResult, setHasPreviousResult] = useState<boolean | null>(null)
+  const [evaluation, setEvaluation] = useState<Record<string, string> | null>(null); // Allow null initially
+  const [recommendedCourses, setRecommendedCourses] = useState<string[]>([])
+  const [score, setScore] = useState<number | null>(null)
+  const [submittedDate, setSubmittedDate] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // use effect to check for prior quiz result
+  const router = useRouter()
+
+  // Effect to check for prior quiz result
   useEffect(() => {
     const checkPreviousResult = async () => {
+      setIsLoading(true); // Start loading before fetch
+      setError(null); // Reset error
       try {
-        const response = await fetch(`http://localhost:${process.env.B_PORT}/quiz/results/${userId}`);
+        // Use environment variable for backend URL
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+        const response = await fetch(`${backendUrl}/quiz/results/${userId}`); // Use dynamic URL
+        // console.log(`Checking results at: ${backendUrl}/quiz/results/${userId}`);
+
+        if (!response.ok) {
+          // If 404, it likely means no results found, which is not an error in logic
+          if (response.status === 404) {
+            console.log("No previous quiz results found for user.");
+            setHasPreviousResult(false);
+            // Fetch questions if no results
+            fetchQuestions();
+            onComplete(null); // Notify parent no results found on load
+            return; // Exit early
+          }
+          // Handle other errors (like 500)
+          throw new Error(`Failed to check previous results. Status: ${response.status}`);
+        }
+
         const data = await response.json();
-        if (data.hasResult) {
+        // console.log("Previous results data:", data);
+
+        if (data && data.hasResult) {
           setHasPreviousResult(true);
-          setEvaluation(data.evaluation);
-          setRecommendedCourses(data.recommendedCourses);
-          setScore(data.score);
-          setSubmittedDate(data.createdAt);
-          // console.log(data.evaluation);
+          setEvaluation(data.evaluation || {}); // Ensure evaluation is an object
+          setRecommendedCourses(data.recommendedCourses || []);
+          setScore(data.score ?? null); // Handle potential null score
+          setSubmittedDate(data.createdAt || null);
+
+          // *** IMPORTANT FIX: Call onComplete when previous results are loaded ***
+          onComplete({
+            score: data.score ?? 0, // Provide default if null
+            evaluation: data.evaluation || {},
+            recommendedCourses: data.recommendedCourses || [],
+          });
+          // No need to fetch questions if results exist
+          setIsLoading(false); // Stop loading here if results found
+
         } else {
           setHasPreviousResult(false);
+          // Fetch questions if no results
+          fetchQuestions();
+          onComplete(null); // Notify parent no results found on load
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error checking previous result:", err);
-        setError("Could not verify quiz attempt. Please try again.");
+        setError(`Could not verify previous quiz attempt: ${err.message}. Please try refreshing.`);
+        setHasPreviousResult(null); // Indicate error state
+        setIsLoading(false); // Stop loading on error
       }
+      // Removed finally setIsLoading(false) as it's handled within try/catch branches
     };
 
     checkPreviousResult();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]); // Depend only on userId, onComplete, courseId (if needed by fetchQuestions)
 
 
-  // Fetch quiz questions on component mount only if no results present
-  useEffect(() => {
-    if (hasPreviousResult === false) {
-      fetchQuestions();
-    }
-  }, [hasPreviousResult]);
-
-
+  // Fetch quiz questions (only called if hasPreviousResult is false)
   const fetchQuestions = async () => {
+    // No need to set isLoading true here, it's handled by the checkPreviousResult effect
+    setError(null); // Reset error before fetching
     try {
-      setIsLoading(true);
-      const response = await fetch("/api/quiz");
+      // Ensure API route exists and works
+      const response = await fetch("/api/quiz") // Ensure this route is correct
       if (!response.ok) {
-        throw new Error("Failed to fetch quiz questions");
+        throw new Error("Failed to fetch quiz questions")
       }
-      const data = await response.json();
-      // console.log(data)
-      setQuestions(data);
-    } catch (err) {
-      setError("Error loading quiz questions. Please try again later.");
-      console.error(err);
+      const data = await response.json()
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error("No questions received from API");
+      }
+      setQuestions(data)
+    } catch (err: any) {
+      setError(`Error loading quiz questions: ${err.message}. Please try again later.`)
+      console.error(err)
     } finally {
+      // Stop loading *after* fetching questions or if an error occurred
       setIsLoading(false);
     }
-  };
+  }
 
   const handleAnswerSelect = (answer: string) => {
     setSelectedAnswers({
       ...selectedAnswers,
       [currentQuestionIndex]: Number.parseInt(answer),
-    });
-  };
+    })
+  }
 
   const handleNext = () => {
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setCurrentQuestionIndex(currentQuestionIndex + 1)
     } else {
-      completeQuiz();
+      completeQuiz() // Call submit function on the last question
     }
-  };
+  }
 
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
+      setCurrentQuestionIndex(currentQuestionIndex - 1)
     }
-  };
+  }
 
   const completeQuiz = async () => {
+    setError(null); // Reset error
+    if (Object.keys(selectedAnswers).length !== questions.length) {
+      setError("Please answer all questions before submitting.");
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-  
       // Construct responses properly
-      const responses = Object.entries(selectedAnswers).map(([index, selectedAnswer]) => {
-        const question = questions[Number(index)];
-        
-        // console.log(question)
+      const responses = questions.map((question, index) => {
+        const selectedAnswer = selectedAnswers[index];
+        // Ensure question has a questionId property
+        if (!question.questionId) {
+          console.error("Missing questionId for question:", question);
+          throw new Error(`Missing questionId for question at index ${index}`);
+        }
         return {
-          questionId: question.questionId,
-          selectedAnswer,
-          isCorrect: selectedAnswer === question.correctAnswer
+          questionId: question.questionId, // Use the actual ID from the question object
+          selectedAnswer: selectedAnswer,
+          isCorrect: selectedAnswer === question.correctAnswer,
         };
       });
-  
-      const response = await fetch("/api/quiz/submit", {
+
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      const response = await fetch(`${backendUrl}/quiz/submit`, { // Use dynamic URL
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId, //  Use real ObjectId
-          courseId, //  Use real ObjectId
-          responses
-        })
-      });
-  
-      if (!response.ok) throw new Error("Failed to submit quiz results");
-  
-      setQuizCompleted(true);
-    } catch (err) {
-      setError("Error submitting quiz results. Please try again.");
-      console.error(err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  if (hasPreviousResult === true) {
-    return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Card className="w-full max-w-3xl">
-          <CardHeader>
-            <CardTitle className="text-red-500">Quiz Already Attempted</CardTitle>
-            <CardDescription>
-              You submitted this quiz on{" "}
-              <span className="font-medium">
-                {submittedDate ? new Date(submittedDate).toLocaleString() : "N/A"}
-              </span>
-            </CardDescription>
-          </CardHeader>
-  
-          <CardContent className="space-y-6">
-            {/* Evaluation Table */}
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Evaluation by Category</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                  <thead>
-                    <tr >
-                      <th className="border border-gray-300 px-4 py-2 text-left">Category</th>
-                      <th className="border border-gray-300 px-4 py-2 text-left">Proficiency</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {evaluation &&
-                      Object.entries(evaluation).map(([category, level], idx) => (
-                        <tr key={idx} >
-                          <td className="border border-gray-300 px-4 py-2">{category}</td>
-                          <td className="border border-gray-300 px-4 py-2">{level}</td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-  
-            {/* Score Display */}
-            {score !== null && (
-              <div>
-                <h3 className="text-lg font-semibold">Score</h3>
-                <p className="text-base">{score}%</p>
-              </div>
-            )}
-  
-            {/* Recommended Courses */}
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Recommended Topics based on Results</h3>
-              {recommendedCourses.length > 0 ? (
-                <ul className="list-disc list-inside text-base space-y-1">
-                  {recommendedCourses.map((course, idx) => (
-                    <li key={idx}>{course}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-base text-muted-foreground">No course recommendations found.</p>
-              )}
-            </div>
-          </CardContent>
-  
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={() => router.push("/courses")}>Browse Courses</Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-  
+          userId,
+          courseId: String(courseId), // Ensure courseId is string if needed by backend
+          responses,
+        }),
+      })
 
+      if (!response.ok) {
+        const errorData = await response.text(); // Get more error details
+        console.error("Submission error response:", errorData);
+        throw new Error(`Failed to submit quiz results. Status: ${response.status}`);
+      }
+
+      const result = await response.json() // Assuming backend returns results on successful submission
+
+      // Update state based on the submission response
+      setQuizCompletedInternally(true); // Show the "Completed" message briefly
+      setHasPreviousResult(true); // Mark as having results now
+      setScore(result.score ?? null);
+      setEvaluation(result.evaluation || {});
+      setRecommendedCourses(result.recommendedCourses || []);
+      setSubmittedDate(new Date().toISOString()); // Set submission date to now
+
+      // Notify parent component about quiz completion with results
+      onComplete({
+        score: result.score ?? 0,
+        evaluation: result.evaluation || {},
+        recommendedCourses: result.recommendedCourses || [],
+      });
+
+
+    } catch (err: any) {
+      setError(`Error submitting quiz results: ${err.message}. Please try again.`)
+      console.error(err)
+      // Don't set quizCompletedInternally on error
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // --- Render Logic ---
+
+  // 1. Loading State (while checking for results or fetching questions)
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Card className="w-full max-w-2xl">
-          <CardContent className="flex flex-col items-center justify-center py-10">
-            <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-            <p>Loading quiz questions...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <Card className="w-full max-w-2xl">
+            <CardContent className="flex flex-col items-center justify-center py-10">
+              <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+              {/* Provide more context based on state */}
+              <p>{hasPreviousResult === null ? "Checking previous attempts..." : "Loading quiz questions..."}</p>
+            </CardContent>
+          </Card>
+        </div>
+    )
   }
 
-  // If quiz is completed, show success message
-  if (quizCompleted) {
+  // 2. Error State
+  if (error) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Card className="w-full max-w-2xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-6 w-6 text-green-500" />
-              Quiz Completed
-            </CardTitle>
-            <CardDescription>Your responses have been submitted successfully.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>You can now access the recommended course materials.</p>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button onClick={() => router.push("/courses")}>Return to Courses</Button>
-          </CardFooter>
-        </Card>
-      </div>
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <Card className="w-full max-w-2xl border-destructive">
+            <CardHeader>
+              <CardTitle className="text-destructive">Error</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-destructive-foreground">{error}</p>
+              <Button onClick={hasPreviousResult === false ? fetchQuestions : () => window.location.reload()} className="mt-4">
+                {hasPreviousResult === false ? "Retry Loading Questions" : "Refresh Page"}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
     );
   }
 
-  // If quiz is ongoing, show questions
-  const currentQuestion = questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+  // 3. Display Results/Progress Report (if hasPreviousResult is true)
+  // This now correctly shows the report instead of the "Quiz Completed" message after submission
+  if (hasPreviousResult === true && evaluation && score !== null) {
+    return (
+        <div className="flex justify-center items-center min-h-[50vh] py-6">
+          <Card className="w-full max-w-3xl">
+            <CardHeader>
+              {/* Change title slightly */}
+              <CardTitle className="text-blue-600 dark:text-blue-400">Quiz Progress Report</CardTitle>
+              <CardDescription>
+                {/* Use the actual submitted date */}
+                Quiz submitted on{" "}
+                <span className="font-medium">{submittedDate ? new Date(submittedDate).toLocaleString() : "N/A"}</span>
+              </CardDescription>
+            </CardHeader>
 
-  return (
-    <div className="flex justify-center items-center min-h-[50vh]">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            Cybersecurity Course Quiz
-          </CardTitle>
-          <CardDescription>
-            Complete this quiz to assess your cybersecurity knowledge and unlock course content.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between text-sm text-muted-foreground mb-2">
-              <span>Question {currentQuestionIndex + 1} of {questions.length}</span>
-              <span>{progress.toFixed(0)}% complete</span>
-            </div>
-            <Progress value={progress} className="mb-6" />
-
-            <div className="py-4">
-              <h3 className="text-lg font-medium mb-4">{currentQuestion.question}</h3>
-
-              <RadioGroup
-                value={selectedAnswers[currentQuestionIndex]?.toString() || ""}
-                onValueChange={handleAnswerSelect}
-                className="space-y-3"
-              >
-                {currentQuestion.options.map((option, index) => (
-                  <div
-                    key={index}
-                    className={`flex items-center space-x-2 rounded-md border p-3 ${
-                      selectedAnswers[currentQuestionIndex] === index + 1
-                        ? "border-primary bg-primary/5"
-                        : "border-input"
-                    }`}
-                  >
-                    <RadioGroupItem value={(index + 1).toString()} id={`option-${index}`} className="sr-only" />
-                    <Label htmlFor={`option-${index}`} className="flex-grow cursor-pointer font-normal">
-                      {option}
-                    </Label>
+            <CardContent className="space-y-6">
+              {/* Score Display */}
+              {score !== null && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-1">Overall Score</h3>
+                    <p className="text-2xl font-bold text-primary">{score}%</p>
                   </div>
-                ))}
-              </RadioGroup>
-            </div>
+              )}
+              {/* Evaluation Table */}
+              {evaluation && Object.keys(evaluation).length > 0 ? (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Evaluation by Category</h3>
+                    <div className="overflow-x-auto rounded-md border">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted">
+                        <tr>
+                          <th className="px-4 py-2 text-left font-medium">Category</th>
+                          <th className="px-4 py-2 text-left font-medium">Proficiency</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {Object.entries(evaluation).map(([category, level], idx) => (
+                            <tr key={idx} className="border-t">
+                              <td className="px-4 py-2">{category}</td>
+                              <td className="px-4 py-2">{level}</td>
+                            </tr>
+                        ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+              ) : (
+                  <p>Detailed evaluation not available.</p>
+              )}
+
+
+              {/* Recommended Courses */}
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Recommended Topics</h3>
+                {recommendedCourses.length > 0 ? (
+                    <ul className="list-disc list-inside space-y-1">
+                      {recommendedCourses.map((topic, idx) => (
+                          <li key={idx}>{topic}</li>
+                      ))}
+                    </ul>
+                ) : (
+                    <p className="text-muted-foreground">Great job! No specific topic recommendations based on this quiz.</p>
+                )}
+              </div>
+            </CardContent>
+
+            <CardFooter className="flex justify-end">
+              {/* Changed button text */}
+
+              {/* Optionally add a button to review answers if that feature exists */}
+            </CardFooter>
+          </Card>
+        </div>
+    )
+  }
+
+  // 4. If quiz was *just* submitted, show a temporary success message
+  // (This state is brief before the results view takes over)
+  if (quizCompletedInternally) {
+    return (
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <Card className="w-full max-w-2xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-6 w-6 text-green-500" />
+                Quiz Submitted!
+              </CardTitle>
+              <CardDescription>Your responses have been saved. Loading results...</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center py-6">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </CardContent>
+          </Card>
+        </div>
+    )
+  }
+
+  // 5. No results, no error, not loading -> Show Quiz Questions
+  if (questions.length > 0 && !hasPreviousResult) {
+    const currentQuestion = questions[currentQuestionIndex];
+    const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+
+    // Check if currentQuestion exists before rendering
+    if (!currentQuestion) {
+      // This might happen briefly if questions are cleared or during state transitions
+      return (
+          <div className="flex justify-center items-center min-h-[50vh]">
+            <p>Loading question...</p>
           </div>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={handlePrevious} disabled={currentQuestionIndex === 0}>
-            Previous
-          </Button>
-          <Button onClick={handleNext} disabled={!selectedAnswers[currentQuestionIndex] || isSubmitting}>
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Next"}
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+      );
+    }
+
+    return (
+        <div className="flex justify-center items-center min-h-[50vh] py-6">
+          <Card className="w-full max-w-2xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-6 w-6 text-primary" />
+                Cybersecurity Course Quiz
+              </CardTitle>
+              <CardDescription>
+                Complete this quiz to assess your knowledge and unlock course content.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                     <span>
+                       Question {currentQuestionIndex + 1} of {questions.length}
+                     </span>
+                  <span>{progress.toFixed(0)}% complete</span>
+                </div>
+                <Progress value={progress} className="mb-6" />
+
+                <div className="py-4">
+                  <h3 className="text-lg font-medium mb-4">{currentQuestion.question}</h3>
+
+                  <RadioGroup
+                      // Ensure value is always a string or undefined
+                      value={selectedAnswers[currentQuestionIndex]?.toString()}
+                      onValueChange={handleAnswerSelect}
+                      className="space-y-3"
+                  >
+                    {currentQuestion.options.map((option, index) => {
+                      const optionValue = index + 1; // Options seem 1-based
+                      return (
+                          <Label
+                              key={index} // Use index as key if options are static per question
+                              htmlFor={`option-${currentQuestion.id}-${index}`} // More unique ID
+                              className={`flex items-center space-x-3 rounded-md border p-3 cursor-pointer transition-colors hover:bg-muted/50 ${
+                                  selectedAnswers[currentQuestionIndex] === optionValue
+                                      ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                      : "border-input"
+                              }`}
+                          >
+                            <RadioGroupItem value={optionValue.toString()} id={`option-${currentQuestion.id}-${index}`} />
+                            <span className="flex-grow font-normal"> {/* Moved span inside Label */}
+                              {option}
+                                </span>
+                          </Label>
+                      );
+                    })}
+                  </RadioGroup>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={handlePrevious} disabled={currentQuestionIndex === 0 || isSubmitting}>
+                Previous
+              </Button>
+              <Button
+                  onClick={handleNext}
+                  disabled={selectedAnswers[currentQuestionIndex] === undefined || isSubmitting}
+              >
+                {isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {currentQuestionIndex === questions.length - 1 ? "Submit" : "Next"}
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+    );
+  }
+
+  // 6. Fallback if none of the above conditions are met (e.g., no questions and no results)
+  return (
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <Card className="w-full max-w-2xl">
+          <CardContent className="py-10 text-center">
+            <p>Quiz content is currently unavailable. Please check back later or contact support.</p>
+          </CardContent>
+        </Card>
+      </div>
   );
+
 }
+
+export type { QuizResults }
