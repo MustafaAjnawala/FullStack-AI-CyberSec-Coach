@@ -32,6 +32,7 @@ export function CourseQuiz({
   onComplete: (results: QuizResults | null) => void // Modified to accept null
 }) {
   const userId = "6603e0f6b2b4e9db2f234567" // 🔹 Hardcoded User ID - Use actual ID
+  // const courseId = "6603e0f6b2b4f9db2f234567"
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({})
@@ -180,13 +181,14 @@ export function CourseQuiz({
         };
       });
 
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      const response = await fetch(`${backendUrl}/quiz/submit`, { // Use dynamic URL
+      // const backendUrl = `http://localhost:5000`;
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+      const response = await fetch(`${backendUrl}/evaluate`, { // Use dynamic URL
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
-          courseId: String(courseId), // Ensure courseId is string if needed by backend
+          courseId: "6603e0f6b2b4e9db2f234567", // Ensure courseId is string if needed by backend
           responses,
         }),
       })

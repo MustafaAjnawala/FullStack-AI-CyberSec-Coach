@@ -146,7 +146,7 @@ app.post("/quiz/questions/add", async (req, res) => {
 });
 
 
-// ✅ Route to fetch all questions (shuffled)
+// Route to fetch all shuffled questions for the quiz
 app.get("/quiz/questions", async (req, res) => {
     try {
         let questions = await Question.find();
@@ -255,6 +255,7 @@ app.post("/evaluate", async (req, res) => {
                 
                 await quizResult.save();
 
+                console.log("Results saved, sending evaluation");
                 return res.json({
                     success: true,
                     message: "Quiz evaluated and saved",
