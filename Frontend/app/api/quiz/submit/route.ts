@@ -1,8 +1,16 @@
 // 🔹 app/api/quiz/submit/route.ts
-
+/**
+ * @deprecated This API route is deprecated and will be removed in the next major version.
+ * Please use the direct backend connection instead.
+ */
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
+   console.warn(
+    ' WARNING: /api/quiz/submit route is deprecated. ' +
+    'Please update your code to use the direct backend connection. ' +
+    'This route will be removed in the next major version.'
+  );
   try {
     const body = await request.json();
 

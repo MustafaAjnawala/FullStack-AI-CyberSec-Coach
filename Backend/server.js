@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const express = require("express");
-const { spawn } = require("child_process"); // Import child_process to run Python
+const { spawn } = require("child_process"); // Import child_process to run Python script
 const cors = require("cors");
 require("dotenv").config();
 
