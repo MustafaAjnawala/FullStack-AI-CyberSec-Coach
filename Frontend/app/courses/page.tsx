@@ -53,7 +53,17 @@ export default function CoursesPage() {
         setIsLoading(true)
 
         // Fetch courses
-        const coursesResponse = await fetch("/api/courses")
+
+        // const coursesResponse = await fetch("/api/courses")  //prev implementation
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL
+        //directly hitting backend api endpoint
+        const coursesResponse = await fetch(`${backendUrl}/api/courses`,{
+          method: 'GET',
+          headers:{
+            'Content-Type': 'application/json'
+          }
+        })
+        console.log(coursesResponse) //check courses json in network section of dev tools
         if (!coursesResponse.ok) {
           throw new Error("Failed to fetch courses")
         }

@@ -1,3 +1,16 @@
+/**
+ * @deprecated This API route is deprecated and will be removed in the next version.
+ * Please use the Express backend endpoint directly: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/courses`
+ * 
+ * Reason for deprecation:
+ * - Reducing unnecessary API layers
+ * - Moving to direct backend communication
+ * - Improving performance by eliminating extra hop
+ * 
+ * Migration guide:
+ * Replace: fetch("/api/courses")
+ * With: fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/courses`)
+ */
 import { NextResponse } from "next/server"
 
 export async function GET() {

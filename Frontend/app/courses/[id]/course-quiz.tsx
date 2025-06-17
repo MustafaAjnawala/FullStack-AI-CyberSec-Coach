@@ -55,12 +55,10 @@ export function CourseQuiz({
       setError(null); // Reset error
       try {
         // Use environment variable for backend URL
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-        const response = await fetch(`${backendUrl}/quiz/results/${userId}`); // Use dynamic URL
-        // console.log(`Checking results at: ${backendUrl}/quiz/results/${userId}`);
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+        const response = await fetch(`${backendUrl}/quiz/results/${userId}`); 
 
         if (!response.ok) {
-          // If 404, it likely means no results found, which is not an error in logic
           if (response.status === 404) {
             console.log("No previous quiz results found for user.");
             setHasPreviousResult(false);
@@ -74,7 +72,6 @@ export function CourseQuiz({
         }
 
         const data = await response.json();
-        // console.log("Previous results data:", data);
 
         if (data && data.hasResult) {
           setHasPreviousResult(true);

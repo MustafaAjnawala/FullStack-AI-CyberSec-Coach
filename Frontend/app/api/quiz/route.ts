@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export async function GET() {
   try {
     // Fetch questions from MongoDB via your backend API
-    const response = await fetch(`http://localhost:${process.env.B_PORT}/quiz/questions`);
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/quiz/questions`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch questions: ${response.statusText}`);
