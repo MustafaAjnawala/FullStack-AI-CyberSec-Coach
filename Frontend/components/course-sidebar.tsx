@@ -7,17 +7,41 @@ import { Separator } from "@/components/ui/separator"
 import { Shield, BookOpen, CheckCircle, Lock, ChevronDown, ChevronRight, FileText, Video, Code, Loader2 } from "lucide-react" // Keep Loader2 for loading state
 import { cn } from "@/lib/utils"
 
-// --- Interfaces remain the same ---
+// --- Interfaces updated for new API structure ---
 interface ModuleContent {
   type: "reading" | "video" | "lab"
   title: string
   url?: string
 }
 
+interface ContentItem {
+  heading: string;
+  content: string;
+}
+
+interface Subtopic {
+  title: string;
+  content: ContentItem[];
+}
+
+interface Topic {
+  title: string;
+  subtopics: Subtopic[];
+}
+
+interface Level {
+  level: string;
+  topics: Topic[];
+}
+
 interface Module {
-  id: number
-  title: string // Assuming title matches keys in quizEvaluation
-  completed: boolean
+  _id: string;
+  id: number;
+  courseId: number;
+  title: string;
+  overview: string;
+  completed: boolean;
+  levels: Level[];
   content?: {
     readings: string[]
     videoUrl: string
@@ -30,10 +54,11 @@ interface CourseSidebarProps {
   courseId: string | number
   activeModule: number
   activeContentType: string
+  activeSubtopic?: string | null; // Track selected subtopic
   quizCompleted: boolean // Whether quiz has results
   quizEvaluation: Record<string, string> | null // Evaluation data for sorting
   onModuleSelect: (moduleId: number) => void
-  onContentSelect: (moduleId: number, contentType: string, contentIndex: number) => void
+  onContentSelect: (moduleId: number, contentType: string, contentIndex: number, subtopic?: string, topic?: string) => void
 }
 
 // --- Sorting helpers remain the same ---
@@ -52,11 +77,11 @@ const getSortOrder = (level: string | undefined): number => {
   return proficiencyOrder[level];
 };
 
-
 export function CourseSidebar({
                                 courseId,
                                 activeModule,
                                 activeContentType,
+                                activeSubtopic,
                                 quizCompleted, // Indicates if quiz results exist
                                 quizEvaluation, // The actual evaluation map
                                 onModuleSelect,
@@ -66,26 +91,48 @@ export function CourseSidebar({
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({})
+  const [expandedTopics, setExpandedTopics] = useState<Record<string, boolean>>({}) // Track expanded topics
 
-  // --- Fetching logic remains the same ---
+  // --- Fetching logic updated for new API structure ---
   useEffect(() => {
     const fetchCourseData = async () => {
       setError(null);
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/courses/${courseId}`)
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+        const response = await fetch(`${backendUrl}/api/course/${courseId}`)
         if (!response.ok) {
           throw new Error("Failed to fetch course data")
         }
         const data = await response.json()
-        const fetchedModules: Module[] = data.modules || [];
+
+        // Transform the API response to match our Module interface
+        const fetchedModules: Module[] = data.map((item: any) => ({
+          _id: item._id,
+          id: item.id,
+          courseId: item.courseId,
+          title: item.title,
+          overview: item.overview,
+          completed: false,
+          levels: item.levels || []
+        }));
 
         const initialExpandedState: Record<number, boolean> = {}
+        const initialTopicExpandedState: Record<string, boolean> = {};
+
         fetchedModules.forEach((module: Module) => {
           initialExpandedState[module.id] = false
+          if (module.levels) {
+            module.levels.forEach(level => {
+              level.topics.forEach(topic => {
+                initialTopicExpandedState[`${module.id}-${topic.title}`] = false;
+              });
+            });
+          }
         })
 
         setExpandedModules(initialExpandedState)
+        setExpandedTopics(initialTopicExpandedState);
         setModules(fetchedModules)
       } catch (err: any) {
         setError(`Error loading modules: ${err.message}`)
@@ -109,7 +156,6 @@ export function CourseSidebar({
     }
   }, [activeModule])
 
-
   // --- SORTING LOGIC remains the same ---
   const sortedModules = useMemo(() => {
     if (quizCompleted && quizEvaluation && modules.length > 0) {
@@ -129,7 +175,6 @@ export function CourseSidebar({
   }, [modules, quizCompleted, quizEvaluation]);
   // --- END SORTING LOGIC ---
 
-
   // --- Event handlers remain the same ---
   const toggleModule = (moduleId: number) => {
     setExpandedModules((prev) => ({
@@ -138,18 +183,25 @@ export function CourseSidebar({
     }))
   }
 
+  const toggleTopic = (moduleId: number, topicTitle: string) => {
+    const key = `${moduleId}-${topicTitle}`;
+    setExpandedTopics(prev => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
   const handleModuleClick = (moduleId: number) => {
     onModuleSelect(moduleId);
     // Toggle expansion regardless of lock state for consistency with original behavior
     toggleModule(moduleId);
   }
 
-  const handleContentTypeClick = (moduleId: number, contentType: string, contentIndex = 0) => {
-    onContentSelect(moduleId, contentType, contentIndex)
+  const handleContentTypeClick = (moduleId: number, contentType: string, contentIndex = 0, subtopic?: string, topic?: string) => {
+    onContentSelect(moduleId, contentType, contentIndex, subtopic, topic)
   }
 
   // --- RENDER SECTION ---
-  // Restore original outer div classes and structure
   return (
       <div className="w-fit max-w-72 border-r h-[calc(100vh-3.5rem)] flex flex-col">
         {/* Restore original header */}
@@ -207,68 +259,95 @@ export function CourseSidebar({
                             <Button
                                 variant={isActiveModule ? "secondary" : "ghost"}
                                 className={cn(
-                                    "min-w-full max-w-64 justify-between", // Original width/justify classes
+                                    "min-w-full max-w-64 justify-between items-center", // Added items-center for proper vertical alignment
                                     // Original opacity style for locked state, but allow click
                                     isLocked && "opacity-70",
                                 )}
                                 onClick={() => handleModuleClick(module.id)} // Click handler remains
+                                title={module.title} // Add tooltip for full module title
                                 // Remove the explicit 'disabled' attribute unless absolutely necessary
                             >
-                              {/* Restore original span structure for icon + title */}
-                              <span className="flex items-center">
-                                {/* Restore original icon logic */}
+                              <span className="flex items-center min-w-0 flex-1">
                                 {isLocked ? (
-                                    <Lock className="h-4 w-4 mr-2" />
+                                    <Lock className="h-4 w-4 mr-2 flex-shrink-0" />
                                 ) : module.completed ? ( // Use module.completed if it exists
-                                    <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                                    <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
                                 ) : (
-                                    <BookOpen className="h-4 w-4 mr-2" /> // Default icon
+                                    <BookOpen className="h-4 w-4 mr-2 flex-shrink-0" /> // Default icon
                                 )}
-                                <span className="truncate max-w-44">{module.title}</span>
+                                <span className="truncate">{module.title}</span>
                               </span>
-                              {/* Restore original chevron */}
-                              {expandedModules[module.id] ? (
-                                  <ChevronDown className="h-4 w-4 ml-2 flex-shrink-0" />
-                              ) : (
-                                  <ChevronRight className="h-4 w-4 ml-2 flex-shrink-0" />
-                              )}
+                              <div className="flex items-center justify-center w-3 h-6 flex-shrink-0">
+                                {expandedModules[module.id] ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                    <ChevronRight className="h-4 w-4" />
+                                )}
+                              </div>
                             </Button>
 
-                            {/* Restore original Content Types section */}
-                            {/* Show only if expanded AND quiz is completed */}
+                            {/* Show content when expanded AND quiz is completed */}
                             {expandedModules[module.id] && quizCompleted && (
-                                // Restore original padding/spacing for content types
                                 <div className="pl-6 pr-2 py-1 space-y-1">
-                                  {/* Restore original Content Type Buttons */}
-                                  <Button
-                                      variant={
-                                        isActiveModule && activeContentType === "reading" ? "secondary" : "ghost"
-                                      }
-                                      size="sm" // Original size
-                                      className="w-full justify-start text-xs" // Original classes
-                                      onClick={() => handleContentTypeClick(module.id, "reading", 0)}
-                                  >
-                                    <FileText className="h-3.5 w-3.5 mr-2" /> {/* Original icon */}
-                                    Reading Materials
-                                  </Button>
-                                  <Button
-                                      variant={isActiveModule && activeContentType === "video" ? "secondary" : "ghost"}
-                                      size="sm"
-                                      className="w-full justify-start text-xs"
-                                      onClick={() => handleContentTypeClick(module.id, "video", 0)}
-                                  >
-                                    <Video className="h-3.5 w-3.5 mr-2" />
-                                    Video Lessons
-                                  </Button>
-                                  <Button
-                                      variant={isActiveModule && activeContentType === "lab" ? "secondary" : "ghost"}
-                                      size="sm"
-                                      className="w-full justify-start text-xs"
-                                      onClick={() => handleContentTypeClick(module.id, "lab", 0)}
-                                  >
-                                    <Code className="h-3.5 w-3.5 mr-2" />
-                                    Practical Lab
-                                  </Button>
+                                  {module.levels && module.levels.length > 0 ? (
+                                    // Render topics as buttons instead of nested structure
+                                    module.levels.map((level, levelIndex) => (
+                                      <div key={`${module.id}-${level.level}-${levelIndex}`}>
+                                        {level.topics.map((topic, topicIndex) => (
+                                          <Button
+                                            key={`${module.id}-${topic.title}-${topicIndex}`}
+                                            variant={
+                                              isActiveModule &&
+                                              activeContentType === "reading" &&
+                                              activeSubtopic === topic.title
+                                                ? "secondary"
+                                                : "ghost"
+                                            }
+                                            size="sm"
+                                            className="w-full max-w-48 justify-start text-xs mb-1 h-8"
+                                            onClick={() => handleContentTypeClick(module.id, "reading", 0, undefined, topic.title)}
+                                            title={topic.title} // Add tooltip for full title
+                                          >
+                                            <FileText className="h-3 w-3 mr-2 flex-shrink-0" />
+                                            <span className="truncate text-left">{topic.title}</span>
+                                          </Button>
+                                        ))}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    // Fallback to original content type buttons if no levels
+                                    <>
+                                      <Button
+                                          variant={
+                                            isActiveModule && activeContentType === "reading" ? "secondary" : "ghost"
+                                          }
+                                          size="sm"
+                                          className="w-full max-w-48 justify-start text-xs h-8"
+                                          onClick={() => handleContentTypeClick(module.id, "reading", 0)}
+                                      >
+                                        <FileText className="h-3 w-3 mr-2 flex-shrink-0" />
+                                        <span className="truncate">Reading Materials</span>
+                                      </Button>
+                                      <Button
+                                          variant={isActiveModule && activeContentType === "video" ? "secondary" : "ghost"}
+                                          size="sm"
+                                          className="w-full max-w-48 justify-start text-xs h-8"
+                                          onClick={() => handleContentTypeClick(module.id, "video", 0)}
+                                      >
+                                        <Video className="h-3 w-3 mr-2 flex-shrink-0" />
+                                        <span className="truncate">Video Lessons</span>
+                                      </Button>
+                                      <Button
+                                          variant={isActiveModule && activeContentType === "lab" ? "secondary" : "ghost"}
+                                          size="sm"
+                                          className="w-full max-w-48 justify-start text-xs h-8"
+                                          onClick={() => handleContentTypeClick(module.id, "lab", 0)}
+                                      >
+                                        <Code className="h-3 w-3 mr-2 flex-shrink-0" />
+                                        <span className="truncate">Practical Lab</span>
+                                      </Button>
+                                    </>
+                                  )}
                                 </div>
                             )}
                           </div>
