@@ -259,14 +259,27 @@ export function CourseQuiz({
         <div className="flex justify-center items-center min-h-[50vh] py-6">
           <Card className="w-full max-w-3xl">
             <CardHeader>
-              {/* Change title slightly */}
-              <CardTitle className="text-blue-600 dark:text-blue-400">Quiz Progress Report</CardTitle>
-              <CardDescription>
-                {/* Use the actual submitted date */}
-                Quiz submitted on{" "}
-                <span className="font-medium">{submittedDate ? new Date(submittedDate).toLocaleString() : "N/A"}</span>
-              </CardDescription>
-            </CardHeader>
+  {/* Change title slightly */}
+  <CardTitle className="text-blue-600 dark:text-blue-400">Quiz Progress Report</CardTitle>
+  <CardDescription>
+      {/* Use the actual submitted date in Indian time format */}
+      Quiz submitted on{" "}
+     <span className="font-medium">
+       {submittedDate
+         ? new Date(submittedDate).toLocaleString("en-IN", {
+             timeZone: "Asia/Kolkata", // ← ✅ Added IST timezone
+             year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+            })
+          : "N/A"}
+     </span>
+      </CardDescription>
+    </CardHeader>
+
 
             <CardContent className="space-y-6">
               {/* Score Display */}

@@ -11,34 +11,27 @@ import { Shield, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface Course {
-  id: number
-  title: string
-  description: string
-  instructor: string
-  enrolledStudents: number
-  duration: string
-  rating: number
-  modules: {
-    id: number
-    title: string
-    completed: boolean
-  }[]
-  quizCompleted: boolean
+  _id: string; // Changed from id: number
+  title: string;
+  description: string;
+  courseId: number; // The numeric ID for matching with progress
+  long_description: string;
 }
 
 interface UserProgress {
-  completedCourses: number
-  inProgressCourses: number
-  totalQuizzesTaken: number
-  averageScore: number
-  lastActivity: string
+  // This interface is assumed to be correct based on the original code
+  completedCourses: number;
+  inProgressCourses: number;
+  totalQuizzesTaken: number;
+  averageScore: number;
+  lastActivity: string;
   courses: {
-    id: number
-    title: string
-    progress: number
-    quizCompleted: boolean
-    quizScore: number | null
-  }[]
+    id: number; // This 'id' should match the 'courseId' from the Course interface
+    title: string;
+    progress: number;
+    quizCompleted: boolean;
+    quizScore: number | null;
+  }[];
 }
 
 export default function CoursesPage() {
@@ -51,35 +44,31 @@ export default function CoursesPage() {
     const fetchData = async () => {
       try {
         setIsLoading(true)
-
-        // Fetch courses
-
-        // const coursesResponse = await fetch("/api/courses")  //prev implementation
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL
-        //directly hitting backend api endpoint
-        const coursesResponse = await fetch(`${backendUrl}/api/courses`,{
+
+        // Fetch all courses
+        const coursesResponse = await fetch(`${backendUrl}/api/courses`, {
           method: 'GET',
-          headers:{
+          headers: {
             'Content-Type': 'application/json'
           }
         })
-        console.log(coursesResponse) //check courses json in network section of dev tools
         if (!coursesResponse.ok) {
-          throw new Error("Failed to fetch courses")
+          throw new Error(`Failed to fetch courses. Status: ${coursesResponse.status}`)
         }
         const coursesData = await coursesResponse.json()
 
-        // Fetch user progress
+        // Fetch user progress (assuming this API endpoint exists and is correct)
         const progressResponse = await fetch("/api/user/progress")
         if (!progressResponse.ok) {
-          throw new Error("Failed to fetch user progress")
+          throw new Error(`Failed to fetch user progress. Status: ${progressResponse.status}`)
         }
         const progressData = await progressResponse.json()
 
         setCourses(coursesData)
         setUserProgress(progressData)
-      } catch (err) {
-        setError("Error loading data. Please try again later.")
+      } catch (err: any) {
+        setError(`Error loading data: ${err.message}. Please try again later.`)
         console.error(err)
       } finally {
         setIsLoading(false)
@@ -117,29 +106,21 @@ export default function CoursesPage() {
       </ProtectedRoute>
     )
   }
-
-  const cybersecCourse = courses.find((course) => course.id === 1)
-  const courseProgress = userProgress?.courses.find((course) => course.id === 1)
-
-  if (!cybersecCourse) {
+  
+  // --- REFACTORED to handle no courses ---
+  if (!courses || courses.length === 0) {
     return (
-      <ProtectedRoute>
-        <PageContainer>
-          <div className="py-6">
-            <Alert>
-              <AlertDescription>No courses available at this time.</AlertDescription>
-            </Alert>
-          </div>
-        </PageContainer>
-      </ProtectedRoute>
+        <ProtectedRoute>
+          <PageContainer>
+            <div className="py-6">
+              <Alert>
+                <AlertDescription>No courses available at this time.</AlertDescription>
+              </Alert>
+            </div>
+          </PageContainer>
+        </ProtectedRoute>
     )
   }
-
-  // Calculate progress based on completed modules and quiz
-  const totalModules = cybersecCourse.modules.length
-  const completedModules = cybersecCourse.modules.filter((m) => m.completed).length
-  const quizCompleted = cybersecCourse.quizCompleted ? 1 : 0
-  const progress = totalModules > 0 ? ((completedModules + quizCompleted) / (totalModules + 1)) * 100 : 0
 
   return (
     <ProtectedRoute>
@@ -147,52 +128,53 @@ export default function CoursesPage() {
         <div className="py-6">
           <h1 className="text-3xl font-bold mb-6">Your Courses</h1>
 
-          <section className="mb-12">
-            <h2 className="text-2xl font-semibold mb-4">Current Course</h2>
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-primary" />
-                  <CardTitle>{cybersecCourse.title}</CardTitle>
-                </div>
-                <CardDescription>{cybersecCourse.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-4">
-                  <div className="flex justify-between text-sm text-muted-foreground mb-1">
-                    <span>Course Progress</span>
-                    <span>{progress.toFixed(0)}%</span>
-                  </div>
-                  <Progress value={progress} className="h-2" />
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Instructor:</span> {cybersecCourse.instructor}
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Duration:</span> {cybersecCourse.duration}
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Quiz Status:</span>{" "}
-                    {cybersecCourse.quizCompleted ? "Completed" : "Not Completed"}
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Modules:</span> {completedModules}/{totalModules} completed
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button asChild className="w-full">
-                  <Link href={`/courses/${cybersecCourse.id}`}>
-                    {progress > 0 ? "Continue Course" : "Start Course"}
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
+          {/* --- REFACTORED to dynamically render all available courses --- */}
+          <section className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {courses.map((course) => {
+              // Find the progress for the current course in the loop
+              const courseProgress = userProgress?.courses.find(
+                (p) => p.id === course.courseId
+              );
+
+              const progress = courseProgress?.progress ?? 0;
+
+              return (
+                <Card key={course._id} className="hover:shadow-md transition-shadow flex flex-col">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-primary" />
+                      <CardTitle>{course.title}</CardTitle>
+                    </div>
+                    {/* Use the description from the API response */}
+                    <CardDescription className="line-clamp-3">{course.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow">
+                    <div className="mb-4">
+                      <div className="flex justify-between text-sm text-muted-foreground mb-1">
+                        <span>Course Progress</span>
+                        <span>{progress.toFixed(0)}%</span>
+                      </div>
+                      <Progress value={progress} className="h-2" />
+                    </div>
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Quiz Status:</span>{" "}
+                      {courseProgress?.quizCompleted ? `Completed (Score: ${courseProgress.quizScore ?? 'N/A'}%)` : "Not Taken"}
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    {/* The link now uses the courseId for navigation */}
+                    <Button asChild className="w-full">
+                      <Link href={`/courses/${course.courseId}`}>
+                        {progress > 0 ? "Continue Course" : "Start Course"}
+                      </Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            })}
           </section>
         </div>
       </PageContainer>
     </ProtectedRoute>
   )
 }
-
