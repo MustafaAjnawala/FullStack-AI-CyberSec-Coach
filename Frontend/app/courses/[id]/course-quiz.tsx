@@ -32,9 +32,10 @@ export function CourseQuiz({
   onComplete: (results: QuizResults | null) => void // Modified to accept null
 }) {
   const userId = "6603e0f6b2b4e9db2f234567" // 🔹 Hardcoded User ID - Use actual ID
+  // const courseId = "6603e0f6b2b4f9db2f234567"
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({})
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({})
   const [quizCompletedInternally, setQuizCompletedInternally] = useState(false) // Internal state for after submission animation
   const [hasPreviousResult, setHasPreviousResult] = useState<boolean | null>(null)
   const [evaluation, setEvaluation] = useState<Record<string, string> | null>(null); // Allow null initially
@@ -54,12 +55,10 @@ export function CourseQuiz({
       setError(null); // Reset error
       try {
         // Use environment variable for backend URL
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-        const response = await fetch(`${backendUrl}/quiz/results/${userId}`); // Use dynamic URL
-        // console.log(`Checking results at: ${backendUrl}/quiz/results/${userId}`);
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+        const response = await fetch(`${backendUrl}/quiz/results/${userId}`); 
 
         if (!response.ok) {
-          // If 404, it likely means no results found, which is not an error in logic
           if (response.status === 404) {
             console.log("No previous quiz results found for user.");
             setHasPreviousResult(false);
@@ -73,7 +72,6 @@ export function CourseQuiz({
         }
 
         const data = await response.json();
-        // console.log("Previous results data:", data);
 
         if (data && data.hasResult) {
           setHasPreviousResult(true);
@@ -136,11 +134,13 @@ export function CourseQuiz({
   }
 
   const handleAnswerSelect = (answer: string) => {
-    setSelectedAnswers({
-      ...selectedAnswers,
-      [currentQuestionIndex]: Number.parseInt(answer),
-    })
-  }
+  const questionId = questions[currentQuestionIndex]?.questionId;
+  if (!questionId) return;
+  setSelectedAnswers({
+    ...selectedAnswers,
+    [questionId]: Number.parseInt(answer),
+  });
+};
 
   const handleNext = () => {
     if (currentQuestionIndex < questions.length - 1) {
@@ -164,29 +164,21 @@ export function CourseQuiz({
     }
 
     setIsSubmitting(true);
-    try {
-      // Construct responses properly
-      const responses = questions.map((question, index) => {
-        const selectedAnswer = selectedAnswers[index];
-        // Ensure question has a questionId property
-        if (!question.questionId) {
-          console.error("Missing questionId for question:", question);
-          throw new Error(`Missing questionId for question at index ${index}`);
-        }
-        return {
-          questionId: question.questionId, // Use the actual ID from the question object
-          selectedAnswer: selectedAnswer,
-          isCorrect: selectedAnswer === question.correctAnswer,
-        };
-      });
+    try{
+    const responses = questions.map((question) => ({
+      questionId: question.questionId,
+      selectedAnswer: selectedAnswers[question.questionId],
+      isCorrect: selectedAnswers[question.questionId] === question.correctAnswer,
+    }));
 
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      const response = await fetch(`${backendUrl}/quiz/submit`, { // Use dynamic URL
+      // const backendUrl = `http://localhost:5000`;
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+      const response = await fetch(`${backendUrl}/evaluate`, { // Use dynamic URL
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
-          courseId: String(courseId), // Ensure courseId is string if needed by backend
+          courseId: "6603e0f6b2b4e9db2f234567", // Ensure courseId is string if needed by backend
           responses,
         }),
       })
@@ -267,14 +259,27 @@ export function CourseQuiz({
         <div className="flex justify-center items-center min-h-[50vh] py-6">
           <Card className="w-full max-w-3xl">
             <CardHeader>
-              {/* Change title slightly */}
-              <CardTitle className="text-blue-600 dark:text-blue-400">Quiz Progress Report</CardTitle>
-              <CardDescription>
-                {/* Use the actual submitted date */}
-                Quiz submitted on{" "}
-                <span className="font-medium">{submittedDate ? new Date(submittedDate).toLocaleString() : "N/A"}</span>
-              </CardDescription>
-            </CardHeader>
+  {/* Change title slightly */}
+  <CardTitle className="text-blue-600 dark:text-blue-400">Quiz Progress Report</CardTitle>
+  <CardDescription>
+      {/* Use the actual submitted date in Indian time format */}
+      Quiz submitted on{" "}
+     <span className="font-medium">
+       {submittedDate
+         ? new Date(submittedDate).toLocaleString("en-IN", {
+             timeZone: "Asia/Kolkata", // ← ✅ Added IST timezone
+             year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+            })
+          : "N/A"}
+     </span>
+      </CardDescription>
+    </CardHeader>
+
 
             <CardContent className="space-y-6">
               {/* Score Display */}
@@ -399,8 +404,9 @@ export function CourseQuiz({
                   <h3 className="text-lg font-medium mb-4">{currentQuestion.question}</h3>
 
                   <RadioGroup
+                      key={currentQuestion.questionId} // FIX: Add key to reset component state on question change
                       // Ensure value is always a string or undefined
-                      value={selectedAnswers[currentQuestionIndex]?.toString()}
+                      value={selectedAnswers[currentQuestion.questionId]?.toString()}
                       onValueChange={handleAnswerSelect}
                       className="space-y-3"
                   >
@@ -411,10 +417,10 @@ export function CourseQuiz({
                               key={index} // Use index as key if options are static per question
                               htmlFor={`option-${currentQuestion.id}-${index}`} // More unique ID
                               className={`flex items-center space-x-3 rounded-md border p-3 cursor-pointer transition-colors hover:bg-muted/50 ${
-                                  selectedAnswers[currentQuestionIndex] === optionValue
-                                      ? "border-primary bg-primary/5 ring-1 ring-primary"
-                                      : "border-input"
-                              }`}
+  selectedAnswers[currentQuestion.questionId] === optionValue
+    ? "border-primary bg-primary/5 ring-1 ring-primary"
+    : "border-input"
+}`}
                           >
                             <RadioGroupItem value={optionValue.toString()} id={`option-${currentQuestion.id}-${index}`} />
                             <span className="flex-grow font-normal"> {/* Moved span inside Label */}
@@ -433,7 +439,7 @@ export function CourseQuiz({
               </Button>
               <Button
                   onClick={handleNext}
-                  disabled={selectedAnswers[currentQuestionIndex] === undefined || isSubmitting}
+                  disabled={selectedAnswers[currentQuestion.questionId] === undefined || isSubmitting}
               >
                 {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
