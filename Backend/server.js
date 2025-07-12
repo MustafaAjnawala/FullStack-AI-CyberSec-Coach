@@ -19,36 +19,14 @@ const connectDB = async()=>{
 };
 
 //defining the mongoDB schema for Courses + modules + topic covered in modules
-
-// Schema for content categorized by expertise level
-const categorizedContentSchema = new mongoose.Schema({
-    level: { type: String, enum: ["Beginner", "Intermediate", "Advanced"], required: true }, // Expertise level
-    content: { type: String, required: true } // Content for this level
-});
-
-// Schema for topics within a module
-const topicSchema = new mongoose.Schema({
-    title: { type: String, required: true },
-    content: { type: String, required: true },
-    categorizedContent: [categorizedContentSchema] // New field to store content based on expertise level
-});
-
-// Schema for modules within a course (eg: Broken Acces Control)
-const moduleSchema = new mongoose.Schema({
-    title: { type: String, required: true },
-    overview: { type: String, required: true },
-    topics: [topicSchema] // Stores multiple topics under each module
-});
-
 // Schema for courses (eg: OWASP Top 10 Vuln.)
 const courseSchema = new mongoose.Schema({
     title: { type: String, required: true },
-    description: { type: String },
-    modules: [moduleSchema]
+    description: { type: String }
 });
 
 //to store the 10 topics on which the quiz questions are based
-const topicSchema2 = new mongoose.Schema({
+const topicSchema = new mongoose.Schema({
     id: { type: Number, required: true, unique: true }, // Topic ID
     title: { type: String, required: true }, // Topic name
     completed: { type: Boolean, default: false } // Whether the user has completed this topic
@@ -78,11 +56,15 @@ const quizResultSchema = new mongoose.Schema({
     recommendedCourses: [{ type: String, ref: "Topic" }] // Recommended Topics
 }, { timestamps: true });
 
-// Creating Mongoose Model
+const courseContentSchema = new mongoose.Schema({}, { strict: false }); // Flexible schema could be anything
+
+// Creating Mongoose Models for all collections
 const Course = mongoose.model("Course", courseSchema);
-const Topic = mongoose.model("Topic", topicSchema2);
+const Topic = mongoose.model("Topic", topicSchema);
 const Question = mongoose.model("Question", questionSchema);
 const QuizResults = mongoose.model("QuizResults", quizResultSchema);
+const CourseContent = mongoose.model("CourseContent", courseContentSchema, "CourseContent");
+
 
 //middleware
 app.use(cors());
@@ -90,63 +72,8 @@ app.use(express.json());
 
 connectDB();
 
-//initial route to add course data (OWASP TOP 10 Vuln)
-app.post("/add", async(req,res)=>{
-    try{
-        const course= new Course(req.body);
-        await course.save();
-        res.json({success:true, message:"Course added successfully"});
-    }catch(err){
-        res.status(500).json({error:err.message});
-    }
-});
 
-//route to add a module inside a course
-app.post("/:title/modules/add", async(req,res)=>{
-    try{
-        const course = await Course.findOne({title: req.params.title});
-        if(!course) return res.status(404).json({message:"Course nahi mila"});
-
-        course.modules.push(req.body);
-        await course.save();
-        res.json({ success: true, message: "Module added successfully" });
-    }catch(err) {
-        res.status(500).json({ error: err.message });
-    }
-
-});
-
-// ✅ Route to add topics for the quiz
-app.post("/quiz/topics/add", async (req, res) => {
-    try {
-        const topics = req.body; // Expecting an array of topics
-        await Topic.insertMany(topics);
-        res.json({ success: true, message: "Topics added successfully" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.post("/quiz/questions/add", async (req, res) => {
-    try {
-        console.log("Received request body:", req.body);
-        const { questions } = req.body;
-        
-        if (!Array.isArray(questions) || questions.length === 0) {
-            return res.status(400).json({ error: "Invalid request format. 'questions' must be a non-empty array." });
-        }
-
-        console.log("Inserting questions:", questions);
-        await Question.insertMany(questions);
-        res.json({ success: true, message: "Questions added successfully" });
-    } catch (err) {
-        console.error("Error inserting questions:", err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-
-// Route to fetch all shuffled questions for the quiz
+// ✨Route to fetch all shuffled questions for the quiz
 app.get("/quiz/questions", async (req, res) => {
     try {
         let questions = await Question.find();
@@ -163,38 +90,7 @@ app.get("/quiz/questions", async (req, res) => {
     }
 });
 
-// Route to fetch quiz results for a specific userId
-app.get("/quiz/results/:userId", async (req, res) => {
-    try {
-        const { userId } = req.params;
-
-        // Fetch the most recent quiz result for the user (you can also use .findOne without sort if only 1 result exists)
-        const result = await QuizResults.findOne({ userId })
-            .sort({ createdAt: -1 }) // fetch latest result if multiple exist
-            .select("evaluation recommendedCourses score createdAt"); // only return relevant fields
-
-        if (!result) {
-            return res.json({
-                hasResult: false,
-                message: "No quiz result found for this user."
-            });
-        }
-
-        res.json({
-            hasResult: true,
-            evaluation: result.evaluation,
-            recommendedCourses: result.recommendedCourses,
-            score: result.score,
-            createdAt: result.createdAt
-        });
-    } catch (err) {
-        console.error(" Error fetching quiz result:", err);
-        res.status(500).json({ error: "Server error while fetching quiz result" });
-    }
-});
-
-
-// Inside your Express.js backend route at /evaluate
+// ✨Inside your Express.js backend route at /evaluate
 app.post("/evaluate", async (req, res) => {
     try {
         const { userId, courseId, responses } = req.body;
@@ -280,13 +176,58 @@ app.post("/evaluate", async (req, res) => {
     }
 });
 
-//get course data according to the title
-app.get("/:title", async(req,res)=>{
+// ✨Route to fetch quiz results for a specific userId
+app.get("/quiz/results/:userId", async (req, res) => {
     try {
-        const course = await Course.findOne({ title: req.params.title });
-        if (!course) return res.status(404).json({ message: "Course not found" });
-        res.json(course);
+        const { userId } = req.params;
+
+        // Fetch the most recent quiz result for the user (you can also use .findOne without sort if only 1 result exists)
+        const result = await QuizResults.findOne({ userId })
+            .sort({ createdAt: -1 }) // fetch latest result if multiple exist
+            .select("evaluation recommendedCourses score createdAt"); // only return relevant fields
+
+        if (!result) {
+            return res.json({
+                hasResult: false,
+                message: "No quiz result found for this user."
+            });
+        }
+
+        res.json({
+            hasResult: true,
+            evaluation: result.evaluation,
+            recommendedCourses: result.recommendedCourses,
+            score: result.score,
+            createdAt: result.createdAt
+        });
     } catch (err) {
+        console.error(" Error fetching quiz result:", err);
+        res.status(500).json({ error: "Server error while fetching quiz result" });
+    }
+});
+
+//✨get course info data for all courses
+app.get("/api/courses", async(req,res)=>{
+    try {
+        const courses = await Course.find();
+        if (!courses) return res.status(404).json({ message: "No Courses found" });
+        res.json(courses);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+//✨to get the content for courses according to id
+app.get("/api/course/:id", async(req,res)=>{
+    try{
+        const courseId = parseInt(req.params.id);
+        const courseContent = await CourseContent.find({courseId});
+        if (!courseContent || courseContent.length === 0) {
+            return res.status(404).json({ message: "No modules found for this course" });
+        }
+
+        res.json(courseContent);
+    }catch(err){
         res.status(500).json({ error: err.message });
     }
 });
