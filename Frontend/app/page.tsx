@@ -1,18 +1,65 @@
+"use client" // 👈 Added to enable data fetching and state management
+
+import { useState, useEffect } from "react" // 👈 Import hooks
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, BookOpen, Users, Clock } from "lucide-react"
+import { Shield, BookOpen, Users, Clock, Loader2 } from "lucide-react" // 👈 Import Loader2
 import { PageContainer } from "@/components/page-container"
 import Image from "next/image"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+
+// Define the shape of the course data from the API
+interface Course {
+  _id: string;
+  title: string;
+  description: string;
+  courseId: number;
+  long_description: string;
+}
 
 export default function Home() {
-  // Add this creators array above the component or in a separate data file
+  // State for the featured course, loading status, and errors
+  const [featuredCourse, setFeaturedCourse] = useState<Course | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch the course data when the component mounts
+  useEffect(() => {
+    const fetchFeaturedCourse = async () => {
+      try {
+        setIsLoading(true)
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL
+        const response = await fetch(`${backendUrl}/api/courses`)
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch the featured course.")
+        }
+
+        const courses: Course[] = await response.json()
+
+        // Set the first course in the array as the featured course
+        if (courses && courses.length > 0) {
+          setFeaturedCourse(courses[0])
+        } else {
+          throw new Error("No courses are available at the moment.")
+        }
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchFeaturedCourse()
+  }, []) // Empty dependency array ensures this runs only once
+
   const creators = [
     {
       name: "Shriram",
       role: "Role/Position",
       description: "Brief description about the creator and their contribution to the platform.",
-      image: "/creators/creator1.jpg" // Optional: Add actual images in public/creators folder
+      image: "/creators/creator1.jpg"
     },
     {
       name: "Neel",
@@ -21,13 +68,13 @@ export default function Home() {
       image: "/creators/creator2.jpg"
     },
     {
-      name: "Aditya",
+      name: "Mustafa",
       role: "Role/Position",
       description: "Brief description about the creator and their contribution to the platform.",
       image: "/creators/creator3.jpg"
     },
     {
-      name: "Mustafa",
+      name: "Prajal",
       role: "Role/Position",
       description: "Brief description about the creator and their contribution to the platform.",
       image: "/creators/creator3.jpg"
@@ -39,6 +86,7 @@ export default function Home() {
       image: "/creators/creator3.jpg"
     }
   ];
+
   return (
     <main className="flex-grow">
       <PageContainer>
@@ -72,46 +120,47 @@ export default function Home() {
             </div>
           </section>
 
+          {/* --- DYNAMIC FEATURED COURSE SECTION --- */}
           <section className="mb-12">
             <h2 className="text-3xl font-bold mb-6 text-center">Featured Course</h2>
-            <Card className="hover:shadow-lg transition-shadow max-w-3xl mx-auto">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Shield className="h-6 w-6 text-primary" />
-                  <CardTitle>OWASP Top 10 Vulnerabilities</CardTitle>
+            <div className="max-w-3xl mx-auto">
+              {isLoading && (
+                <div className="flex justify-center items-center p-10">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-                <CardDescription>
-                  Learn about the most critical web application security risks and how to mitigate them.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span>Instructor: Dr. Nitin</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>Duration: 10 weeks</span>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <p className="text-sm text-muted-foreground">
-                    This comprehensive course covers the OWASP Top 10 security vulnerabilities including Broken Access
-                    Control, Cryptographic Failures, Injection Attacks, and more. Perfect for developers and security
-                    professionals.
-                  </p>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button asChild className="w-full">
-                  <Link href="/courses/1">
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    View Course
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
+              )}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              {!isLoading && !error && featuredCourse && (
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-6 w-6 text-primary" />
+                      <CardTitle>{featuredCourse.title}</CardTitle>
+                    </div>
+                    <CardDescription>
+                      {featuredCourse.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      {featuredCourse.long_description}
+                    </p>
+                  </CardContent>
+                  <CardFooter>
+                    <Button asChild className="w-full">
+                      <Link href={`/courses/${featuredCourse.courseId}`}>
+                        <BookOpen className="mr-2 h-4 w-4" />
+                        View Course
+                      </Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              )}
+            </div>
           </section>
 
           <section className="text-center">
@@ -182,4 +231,3 @@ export default function Home() {
     </main>
   )
 }
-
