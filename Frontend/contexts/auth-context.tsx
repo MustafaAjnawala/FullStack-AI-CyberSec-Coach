@@ -5,28 +5,21 @@ import { useRouter, usePathname } from "next/navigation"
 
 // Define user types
 export interface User {
-  id: string
+  _id: string
   username: string
   name: string
   email: string
-  role: "admin"
+  role: "admin" | "user"
   avatarUrl?: string
-}
-
-// Mock user
-const ADMIN_USER: User = {
-  id: "1",
-  username: "admin",
-  name: "Admin User",
-  email: "admin@example.com",
-  role: "admin",
-  avatarUrl: "/placeholder-user.jpg",
+  createdAt?: string
+  updatedAt?: string
 }
 
 interface AuthContextType {
   user: User | null
   login: (username: string, password: string) => Promise<boolean>
-  logout: () => void
+  register: (name: string, username: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  logout: () => Promise<void>
   isLoading: boolean
   isAuthenticated: boolean
 }
@@ -39,18 +32,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
 
-  // Check if user is already logged in (from localStorage)
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'
+
+  // Check if user is already authenticated on mount
   useEffect(() => {
-    const checkAuth = () => {
-      const storedUser = localStorage.getItem("user")
-      if (storedUser) {
-        setUser(JSON.parse(storedUser))
+    const checkAuth = async () => {
+      try {
+        const response = await fetch(`${backendUrl}/auth/me`, {
+          method: 'GET',
+          credentials: 'include', // Important for sending cookies
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setUser(data.user)
+        } else {
+          setUser(null)
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error)
+        setUser(null)
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     }
 
     checkAuth()
-  }, [])
+  }, [backendUrl])
 
   // Redirect unauthenticated users from protected routes
   useEffect(() => {
@@ -68,26 +76,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Login function
   const login = async (username: string, password: string): Promise<boolean> => {
-    // Only allow admin/admin login
-    if (username === "admin" && password === "admin") {
-      setUser(ADMIN_USER)
-      localStorage.setItem("user", JSON.stringify(ADMIN_USER))
-      return true
-    }
+    try {
+      const response = await fetch(`${backendUrl}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important for receiving cookies
+        body: JSON.stringify({ username, password }),
+      })
 
-    return false
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setUser(data.user)
+        return true
+      } else {
+        console.error('Login failed:', data.error)
+        return false
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      return false
+    }
+  }
+
+  // Register function
+  const register = async (name: string, username: string, email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await fetch(`${backendUrl}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important for receiving cookies
+        body: JSON.stringify({ name, username, email, password }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setUser(data.user)
+        return { success: true }
+      } else {
+        return { success: false, error: data.error || 'Registration failed' }
+      }
+    } catch (error) {
+      console.error('Registration error:', error)
+      return { success: false, error: 'Network error during registration' }
+    }
   }
 
   // Logout function
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("user")
-    router.push("/login")
+  const logout = async (): Promise<void> => {
+    try {
+      await fetch(`${backendUrl}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include', // Important for clearing cookies
+      })
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      setUser(null)
+      router.push("/login")
+    }
   }
 
   const value = {
     user,
     login,
+    register,
     logout,
     isLoading,
     isAuthenticated: !!user,

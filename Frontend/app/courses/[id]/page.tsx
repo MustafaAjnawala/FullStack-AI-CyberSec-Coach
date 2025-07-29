@@ -10,6 +10,7 @@ import { CourseQuiz, type QuizResults } from "./course-quiz"
 import { CourseSidebar } from "@/components/course-sidebar"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/contexts/auth-context"
 
 // --- Interfaces updated for new API structure ---
 interface ModuleContent {
@@ -65,6 +66,7 @@ interface Course {
 }
 
 export default function CoursePage() {
+  const { user } = useAuth()
   const params = useParams()
   const courseId = params.id as string
   const [activeModule, setActiveModule] = useState(0)
@@ -119,20 +121,22 @@ export default function CoursePage() {
         }
         setCourse(adaptedCourseData)
 
-        const userId = "6603e0f6b2b4e9db2f234567"
-        const resultsResponse = await fetch(`${backendUrl}/quiz/results/${userId}`)
+        const userId = user?._id
+        if (userId) {
+          const resultsResponse = await fetch(`${backendUrl}/quiz/results/${userId}`)
 
-        if (resultsResponse.ok) {
-          const resultsData = await resultsResponse.json()
-          if (resultsData.hasResult && resultsData.evaluation) {
-            setQuizEvaluation(resultsData.evaluation)
-          } else {
+          if (resultsResponse.ok) {
+            const resultsData = await resultsResponse.json()
+            if (resultsData.hasResult && resultsData.evaluation) {
+              setQuizEvaluation(resultsData.evaluation)
+            } else {
+              setQuizEvaluation(null)
+            }
+          } else if (resultsResponse.status === 404) {
             setQuizEvaluation(null)
+          } else {
+            console.error(`Error fetching initial quiz results: ${resultsResponse.status}`)
           }
-        } else if (resultsResponse.status === 404) {
-          setQuizEvaluation(null)
-        } else {
-          console.error(`Error fetching initial quiz results: ${resultsResponse.status}`)
         }
 
       } catch (err: any) {

@@ -19,6 +19,14 @@ import {
 export function MainNav() {
   const { user, logout, isAuthenticated } = useAuth()
 
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-14 items-center">
@@ -37,7 +45,7 @@ export function MainNav() {
 
           <ThemeToggle />
 
-          {isAuthenticated ? (
+          {isAuthenticated && user ? (
             <>
               <Button variant="ghost" size="icon">
                 <Bell className="h-5 w-5" />
@@ -47,7 +55,7 @@ export function MainNav() {
                 <DropdownMenuTrigger asChild>
                   <Avatar className="cursor-pointer">
                     <AvatarImage src={user.avatarUrl || "/placeholder-user.jpg"} alt={user.name} />
-                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -60,7 +68,7 @@ export function MainNav() {
                     <Link href="/profile">Profile</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="text-destructive">
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>
@@ -68,9 +76,14 @@ export function MainNav() {
               </DropdownMenu>
             </>
           ) : (
-            <Button asChild variant="default">
-              <Link href="/login">Login</Link>
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button asChild variant="outline">
+                <Link href="/register">Register</Link>
+              </Button>
+              <Button asChild variant="default">
+                <Link href="/login">Login</Link>
+              </Button>
+            </div>
           )}
         </div>
       </div>

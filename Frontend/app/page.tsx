@@ -1,10 +1,10 @@
-"use client" // 👈 Added to enable data fetching and state management
+"use client" 
 
-import { useState, useEffect } from "react" // 👈 Import hooks
+import { useState, useEffect } from "react" 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, BookOpen, Users, Clock, Loader2 } from "lucide-react" // 👈 Import Loader2
+import { Shield, BookOpen, Users, Clock, Loader2 } from "lucide-react" 
 import { PageContainer } from "@/components/page-container"
 import Image from "next/image"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -19,7 +19,6 @@ interface Course {
 }
 
 export default function Home() {
-  // State for the featured course, loading status, and errors
   const [featuredCourse, setFeaturedCourse] = useState<Course | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
