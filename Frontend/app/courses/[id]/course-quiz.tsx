@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Shield, CheckCircle, Loader2 } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 
 interface Question {
   id: number
@@ -31,7 +32,8 @@ export function CourseQuiz({
   courseId: string | number
   onComplete: (results: QuizResults | null) => void // Modified to accept null
 }) {
-  const userId = "6603e0f6b2b4e9db2f234567" // 🔹 Hardcoded User ID - Use actual ID
+  const { user } = useAuth()
+  const userId = user?._id // Get userId from authenticated user
   // const courseId = "6603e0f6b2b4f9db2f234567"
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
@@ -51,6 +53,12 @@ export function CourseQuiz({
   // Effect to check for prior quiz result
   useEffect(() => {
     const checkPreviousResult = async () => {
+      if (!userId) {
+        setIsLoading(false)
+        setError("User not authenticated")
+        return
+      }
+      
       setIsLoading(true); // Start loading before fetch
       setError(null); // Reset error
       try {
@@ -158,6 +166,12 @@ export function CourseQuiz({
 
   const completeQuiz = async () => {
     setError(null); // Reset error
+    
+    if (!userId) {
+      setError("User not authenticated. Please log in to submit the quiz.");
+      return;
+    }
+    
     if (Object.keys(selectedAnswers).length !== questions.length) {
       setError("Please answer all questions before submitting.");
       return;

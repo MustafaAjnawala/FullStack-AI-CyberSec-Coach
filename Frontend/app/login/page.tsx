@@ -78,11 +78,11 @@ export default function LoginPage() {
                     required
                   />
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  <p>Demo account:</p>
-                  <p>
-                    Username: <strong>admin</strong>, Password: <strong>admin</strong>
-                  </p>
+                <div className="text-center text-sm text-muted-foreground">
+                  Don't have an account?{" "}
+                  <Link href="/register" className="text-primary hover:underline">
+                    Register here
+                  </Link>
                 </div>
               </div>
             </form>
