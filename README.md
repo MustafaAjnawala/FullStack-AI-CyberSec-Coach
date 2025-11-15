@@ -25,6 +25,8 @@ Showcase of the project in action:
 ### Homepage
 
 ![Homepage Demo](./Frontend/public/home-page-demo.gif)
+![Quizpage Demo](./Frontend/public/quiz-page-demo.gif)
+![Quiz Results page](./Frontend/public/quiz-results.png)
 
 ## 🏗️ Tech Stack
 
