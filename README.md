@@ -6,54 +6,25 @@ An intelligent cybersecurity learning platform that provides personalized coachi
 
 ### 🔐 Authentication & User Management
 
-- **Secure User Registration & Login**: JWT-based authentication with cookie management
-- **Role-based Access Control**: Admin and user role differentiation
-- **Protected Routes**: Automatic redirection for unauthorized access
-- **Session Management**: Persistent login sessions across browser refreshes
-
 ### 📚 Course Management System
-
-- **Dynamic Course Catalog**: Fetch and display courses from MongoDB
-- **Course Details**: Comprehensive course information with descriptions
-- **Featured Course Showcase**: Highlight specific courses on the homepage
-- **Progress Tracking**: Individual course progress monitoring
 
 ### 🧠 AI-Powered Assessment System
 
-- **Interactive Quizzes**: Topic-based quiz system with multiple-choice questions
-- **Python AI Evaluation Engine**: Backend Python script for intelligent assessment
-- **OWASP Top 10 Integration**: Cybersecurity knowledge evaluation based on industry standards
-- **Skill Level Assessment**: Automatic categorization (Beginner, Intermediate, Advanced, Expert)
-- **Personalized Recommendations**: AI-driven course suggestions based on performance
-
 ### 💬 AI Chatbot Assistant
-
-- **Real-time Chat Interface**: Interactive AI assistant for cybersecurity queries
-- **Contextual Help**: Course-specific guidance and support
-- **Floating Chat Widget**: Easily accessible from any page
 
 ### 📊 Progress Analytics
 
-- **Performance Tracking**: Detailed quiz results and scoring
-- **Skill Mapping**: Visual representation of knowledge levels across topics
-- **Learning Path Optimization**: Recommended learning modules based on weaknesses
-- **Historical Progress**: Track improvement over time
-
 ### 🎨 Modern User Interface
-
-- **Next.js 15 + React 19**: Latest frontend technologies
-- **Tailwind CSS + shadcn/ui**: Modern, responsive design system
-- **Dark/Light Theme**: User preference-based theming
-- **Mobile Responsive**: Optimized for all device sizes
-- **Smooth Animations**: Enhanced user experience with loading states
 
 ### 🔧 Technical Features
 
-- **RESTful API Architecture**: Clean backend API structure
-- **MongoDB Integration**: Flexible schema design for courses and user data
-- **Real-time Data Fetching**: Dynamic content loading and updates
-- **Error Handling**: Comprehensive error management across the application
-- **Environment Configuration**: Separate development and production environments
+## 📸 Screenshots & Demo
+
+Showcase of the project in action:
+
+### Homepage
+
+![Homepage Demo](./Frontend/public/home-page-demo.gif)
 
 ## 🏗️ Tech Stack
 
