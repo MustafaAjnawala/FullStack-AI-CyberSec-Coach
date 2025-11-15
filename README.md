@@ -1,15 +1,236 @@
-﻿# FullStack-AI-CyberSec-Coach
+﻿# 🛡️ FullStack AI CyberSecurity Coach
 
-## Frontend
-```sh
-cd frontend
-npm install --legacy-peer-deps
-npm run dev
+An intelligent cybersecurity learning platform that provides personalized coaching and training using AI-powered assistance and Progress Tracking. This full-stack application helps users learn cybersecurity concepts, practice skills, and get real-time guidance through an interactive and realtime sugesstion based on your expertise in the selected course.
+
+## 🌟 Features
+
+### 🔐 Authentication & User Management
+
+- **Secure User Registration & Login**: JWT-based authentication with cookie management
+- **Role-based Access Control**: Admin and user role differentiation
+- **Protected Routes**: Automatic redirection for unauthorized access
+- **Session Management**: Persistent login sessions across browser refreshes
+
+### 📚 Course Management System
+
+- **Dynamic Course Catalog**: Fetch and display courses from MongoDB
+- **Course Details**: Comprehensive course information with descriptions
+- **Featured Course Showcase**: Highlight specific courses on the homepage
+- **Progress Tracking**: Individual course progress monitoring
+
+### 🧠 AI-Powered Assessment System
+
+- **Interactive Quizzes**: Topic-based quiz system with multiple-choice questions
+- **Python AI Evaluation Engine**: Backend Python script for intelligent assessment
+- **OWASP Top 10 Integration**: Cybersecurity knowledge evaluation based on industry standards
+- **Skill Level Assessment**: Automatic categorization (Beginner, Intermediate, Advanced, Expert)
+- **Personalized Recommendations**: AI-driven course suggestions based on performance
+
+### 💬 AI Chatbot Assistant
+
+- **Real-time Chat Interface**: Interactive AI assistant for cybersecurity queries
+- **Contextual Help**: Course-specific guidance and support
+- **Floating Chat Widget**: Easily accessible from any page
+
+### 📊 Progress Analytics
+
+- **Performance Tracking**: Detailed quiz results and scoring
+- **Skill Mapping**: Visual representation of knowledge levels across topics
+- **Learning Path Optimization**: Recommended learning modules based on weaknesses
+- **Historical Progress**: Track improvement over time
+
+### 🎨 Modern User Interface
+
+- **Next.js 15 + React 19**: Latest frontend technologies
+- **Tailwind CSS + shadcn/ui**: Modern, responsive design system
+- **Dark/Light Theme**: User preference-based theming
+- **Mobile Responsive**: Optimized for all device sizes
+- **Smooth Animations**: Enhanced user experience with loading states
+
+### 🔧 Technical Features
+
+- **RESTful API Architecture**: Clean backend API structure
+- **MongoDB Integration**: Flexible schema design for courses and user data
+- **Real-time Data Fetching**: Dynamic content loading and updates
+- **Error Handling**: Comprehensive error management across the application
+- **Environment Configuration**: Separate development and production environments
+
+## 🏗️ Tech Stack
+
+### Frontend
+
+- **Framework**: Next.js 15 with App Router
+- **React**: React 19
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **UI Components**: Radix UI + shadcn/ui component library
+- **State Management**: React Context API
+- **Icons**: Lucide React
+- **Themes**: Next.js themes with dark/light mode support
+
+### Backend
+
+- **Runtime**: Node.js with Express.js
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JWT with secure cookie-based sessions
+- **Security**: CORS enabled, cookie-parser middleware
+- **API**: RESTful API architecture
+- **AI Engine**: Python script integration for quiz evaluation
+
+### Development Tools
+
+- **Package Managers**: npm
+- **Environment**: dotenv configuration
+- **Development Server**: Nodemon for backend hot-reload
+- **Build Tools**: Next.js built-in bundling and optimization
+
+## 📁 Project Structure
+
+```
+├── Frontend/                 # Next.js frontend application
+│   ├── app/                 # App router pages
+│   ├── components/          # Reusable UI components
+│   ├── contexts/           # React contexts for state management
+│   ├── hooks/              # Custom React hooks
+│   ├── lib/                # Utility libraries
+│   ├── public/             # Static assets
+│   └── styles/             # Global styles
+├── Backend/                 # Node.js backend server
+│   ├── middlewares/        # Express middlewares
+│   │   └── auth.js         # Authentication middleware
+│   ├── service/            # Business logic services
+│   │   └── auth.js         # Authentication services
+│   ├── server.js           # Main server file
+│   ├── evaluate.py         # AI evaluation system
+│   └── mongoSchema.js      # Database schemas
+└── README.md
 ```
 
-## Backend
-```sh
-cd backend
-npm install
-npm run dev
-```
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- npm or yarn
+- MongoDB database
+- Python (for evaluation system)
+
+### Installation
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/yourusername/FullStack-AI-CyberSec-Coach.git
+   cd FullStack-AI-CyberSec-Coach
+   ```
+
+2. **Set up the Backend**
+
+   ```bash
+   cd Backend
+   npm install
+   ```
+
+   Create a `.env` file in the Backend directory with your configuration:
+
+   ```env
+   MONGODB_URI=your_mongodb_connection_string
+   JWT_SECRET=your_jwt_secret
+   PORT=5000
+   ```
+
+3. **Set up the Frontend**
+
+   ```bash
+   cd Frontend
+   npm install --legacy-peer-deps
+   ```
+
+   Create a `.env.local` file in the Frontend directory:
+
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:5000
+   ```
+
+### Running the Application
+
+1. **Start the Backend Server**
+
+   ```bash
+   cd Backend
+   npm install
+   npm run dev
+   ```
+
+   The backend will run on `http://localhost:5000`
+
+2. **Start the Frontend Development Server**
+   ```bash
+   cd Frontend
+   npm install --legacy-peer-deps
+   npm run dev
+   ```
+   The frontend will run on `http://localhost:3000`
+
+## 🔧 Configuration
+
+### Environment Variables
+
+#### Backend (.env)
+
+- `MONGODB_URI` - MongoDB connection string
+- `JWT_SECRET` - Secret key for JWT token generation
+- `PORT` - Server port (default: 5000)
+
+#### Frontend (.env.local)
+
+- `NEXT_PUBLIC_API_URL` - Backend API URL
+
+## 🎯 What Makes This Project Unique
+
+### OWASP Top 10 Focus
+
+- Comprehensive coverage of the OWASP Top 10 security vulnerabilities
+- 30 carefully crafted questions covering all major security categories
+- Industry-standard cybersecurity knowledge assessment
+
+### Intelligent Evaluation System
+
+- Python-based AI evaluation engine that analyzes user responses
+- Skill level classification across 10 OWASP categories
+- Personalized learning recommendations based on knowledge gaps
+
+### Modern Full-Stack Architecture
+
+- Clean separation between frontend (Next.js) and backend (Express.js)
+- Secure authentication with JWT tokens and HTTP-only cookies
+- MongoDB integration for scalable data management
+- Real-time progress tracking and analytics
+
+### Educational Impact
+
+- Developed by students from Vishwakarma University
+- Focuses on making cybersecurity education accessible
+- Interactive learning approach with immediate feedback
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with modern web technologies for optimal performance
+- Designed with cybersecurity best practices in mind
+- Inspired by the need for accessible cybersecurity education along with guidance for user unexperienced in cybersecurity
+
+---
+
+⭐ **Star this repository if you find it helpful!** ⭐
