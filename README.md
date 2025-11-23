@@ -4,29 +4,17 @@ An intelligent cybersecurity learning platform that provides personalized coachi
 
 ## 🌟 Features
 
-### 🔐 Authentication & User Management
+- 🔐 **Authentication & User Management:** Secure and Modern login UI.
 
-### 📚 Course Management System
+- 📚 **Course Management System:** Viewall your courses in one page comparing progress and quiz results.
 
-### 🧠 AI-Powered Assessment System
+- 🧠 **AI-Powered Assessment System:** Asses your knowledge and skill level to know where you stand.
 
-### 💬 AI Chatbot Assistant
+- 📊 **Progress Analytics:** Views in detial results and your performance levels for each module of the course.
 
-### 📊 Progress Analytics
+- 🎨 **Modern User Interface:** experience a modern UI built with Next.js
 
-### 🎨 Modern User Interface
-
-### 🔧 Technical Features
-
-## 📸 Screenshots & Demo
-
-Showcase of the project in action:
-
-### Homepage
-
-![Homepage Demo](./Frontend/public/home-page-demo.gif)
-![Quizpage Demo](./Frontend/public/quiz-page-demo.gif)
-![Quiz Results page](./Frontend/public/quiz-results.png)
+---
 
 ## 🏗️ Tech Stack
 
@@ -36,10 +24,6 @@ Showcase of the project in action:
 - **React**: React 19
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **UI Components**: Radix UI + shadcn/ui component library
-- **State Management**: React Context API
-- **Icons**: Lucide React
-- **Themes**: Next.js themes with dark/light mode support
 
 ### Backend
 
@@ -50,12 +34,23 @@ Showcase of the project in action:
 - **API**: RESTful API architecture
 - **AI Engine**: Python script integration for quiz evaluation
 
-### Development Tools
+---
 
-- **Package Managers**: npm
-- **Environment**: dotenv configuration
-- **Development Server**: Nodemon for backend hot-reload
-- **Build Tools**: Next.js built-in bundling and optimization
+## 📸 Screenshots & Demo
+
+The project in action:
+
+### Homepage
+
+![Homepage Demo](./Frontend/public/home-page-demo.gif)
+
+### QuizPage Demo
+
+![Quizpage Demo](./Frontend/public/quiz-page-demo.gif)
+
+### Quiz Results Page
+
+![Quiz Results page](./Frontend/public/quiz-results.png)
 
 ## 📁 Project Structure
 
@@ -93,7 +88,7 @@ Showcase of the project in action:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/yourusername/FullStack-AI-CyberSec-Coach.git
+   git clone https://github.com/MustafaAjnawala/FullStack-AI-CyberSec-Coach.git
    cd FullStack-AI-CyberSec-Coach
    ```
 
@@ -157,7 +152,8 @@ Showcase of the project in action:
 
 #### Frontend (.env.local)
 
-- `NEXT_PUBLIC_API_URL` - Backend API URL
+- `B_PORT` - Backend Port
+- `NEXT_PUBLIC_BACKEND_URL` - Backend API URL
 
 ## 🎯 What Makes This Project Unique
 
@@ -180,12 +176,6 @@ Showcase of the project in action:
 - MongoDB integration for scalable data management
 - Real-time progress tracking and analytics
 
-### Educational Impact
-
-- Developed by students from Vishwakarma University
-- Focuses on making cybersecurity education accessible
-- Interactive learning approach with immediate feedback
-
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -198,7 +188,7 @@ Showcase of the project in action:
 
 Special thanks to the following collaborators for their contributions:
 
-- [@o-Erebus](https://github.com/o-Erebus)
+- **Neel Khatri** - [GitHub Profile](https://github.com/o-Erebus)
 - [@ShrE333](https://github.com/ShrE333)
 
 ---
